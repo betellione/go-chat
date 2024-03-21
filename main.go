@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"sync"
@@ -22,25 +24,44 @@ type Client struct {
 	ID   string
 }
 
+func newClient(conn *websocket.Conn) *Client {
+	return &Client{
+		conn: conn,
+		ID:   uuid.New().String(),
+	}
+}
+
 var (
+	redisClient *redis.Client
 	clients     = make(map[*Client]bool)
 	mutex       = sync.Mutex{}
-	redisClient *redis.Client
-	db          *sql.DB
 	ctx         = context.Background()
+	db          *sql.DB
 )
 
 func init() {
-	// Подключение к Redis
+	viper.SetConfigFile("config.yaml")
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file, %s", err)
+	}
+
+	viper.AutomaticEnv()
 	redisClient = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
 
-	// Подключение к PostgreSQL
 	var err error
-	db, err = sql.Open("postgres", "user=chat_admin password=password dbname=chat_db port=6543 sslmode=disable")
+	dsn := fmt.Sprintf("host=%s user=%s dbname=%s password=%s port=%s sslmode=disable",
+		viper.GetString("db_host"),
+		viper.GetString("postgres_user"),
+		viper.GetString("postgres_db"),
+		viper.GetString("postgres_password"),
+		viper.GetString("db_port"))
+
+	db, err = sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,8 +80,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 	}(conn)
 
-	clientID := uuid.New().String()
-	client := &Client{conn: conn, ID: clientID}
+	client := newClient(conn)
 
 	lastMessages, err := getLastMessages(30)
 	if err != nil {
