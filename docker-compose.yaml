@@ -23,6 +23,7 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
   redis:
+    container_name: chat_redis
     image: redis:latest
     restart: always
     ports:
