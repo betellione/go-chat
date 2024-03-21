@@ -1,0 +1,24 @@
+<input id="name" type="text" placeholder="Your Name"/>
+<input id="input" type="text" placeholder="Your Message"/>
+<button onclick="send()">Send</button>
+<pre id="output"></pre>
+<script>
+    const nameInput = document.getElementById("name");
+    const messageInput = document.getElementById("input");
+    const output = document.getElementById("output");
+    const socket = new WebSocket("ws://localhost:8080/ws");
+
+    socket.onopen = function () {
+        output.innerHTML += "Status: Connected\n";
+    };
+
+    socket.onmessage = function (e) {
+        output.innerHTML += e.data + "\n";
+    };
+
+    function send() {
+        var message = nameInput.value + ": " + messageInput.value;
+        socket.send(message);
+        messageInput.value = "";
+    }
+</script>
