@@ -48,7 +48,7 @@ func init() {
 
 	viper.AutomaticEnv()
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     "chat_redis",
+		Addr:     "chat_redis:6379",
 		Password: "",
 		DB:       0,
 	})
