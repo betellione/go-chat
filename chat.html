@@ -6,7 +6,7 @@
     const nameInput = document.getElementById("name");
     const messageInput = document.getElementById("input");
     const output = document.getElementById("output");
-    const socket = new WebSocket("wss://chat.miftyakov.site:8080/ws");
+    const socket = new WebSocket("wss://chat.miftyakov.site/ws");
 
     socket.onopen = function () {
         output.innerHTML += "Status: Connected\n";
