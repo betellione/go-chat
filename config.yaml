@@ -1,5 +1,0 @@
-db_host: db
-postgres_user: chat_admin
-postgres_db: chat_db
-postgres_password: password
-db_port: 5432

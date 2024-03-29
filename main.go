@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 	"log"
@@ -40,31 +41,30 @@ var (
 )
 
 func init() {
-	viper.SetConfigFile("config.yaml")
-
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file, %s", err)
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
 	}
 
 	viper.AutomaticEnv()
 	redisClient = redis.NewClient(&redis.Options{
-		Addr:     "chat_redis:6379",
-		Password: "",
+		Addr:     viper.GetString("REDIS_HOST"),
+		Password: viper.GetString("REDIS_PASSWORD"),
 		DB:       0,
 	})
 
 	var err error
 	dsn := fmt.Sprintf("host=%s user=%s dbname=%s password=%s port=%s sslmode=disable",
-		viper.GetString("db_host"),
-		viper.GetString("postgres_user"),
-		viper.GetString("postgres_db"),
-		viper.GetString("postgres_password"),
-		viper.GetString("db_port"))
+		viper.GetString("DB_HOST"),
+		viper.GetString("POSTGRES_USER"),
+		viper.GetString("POSTGRES_DB"),
+		viper.GetString("POSTGRES_PASSWORD"),
+		viper.GetString("DB_PORT"))
 
 	db, err = sql.Open("postgres", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
+	ensureTableExists()
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
@@ -150,6 +150,22 @@ func getLastMessages(limit int) ([]string, error) {
 	}
 
 	return messages, nil
+}
+
+func ensureTableExists() {
+	createTableSQL := `
+	CREATE TABLE IF NOT EXISTS messages (
+		id SERIAL PRIMARY KEY,
+		client_id VARCHAR(255),
+		message TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);`
+
+	_, err := db.Exec(createTableSQL)
+	if err != nil {
+		log.Fatalf("Failed to ensure that table 'messages' exists: %v", err)
+	}
+	log.Println("Table 'messages' checked/created successfully")
 }
 
 func main() {

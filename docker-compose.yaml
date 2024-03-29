@@ -3,7 +3,7 @@ name: chat
 
 services:
   app:
-    container_name: go_chat
+    container_name: chat_app
     build: .
     ports:
       - "8080:8080"
@@ -14,10 +14,7 @@ services:
     container_name: chat_db
     image: postgres:latest
     restart: always
-    environment:
-      POSTGRES_DB: chat_db
-      POSTGRES_USER: chat_admin
-      POSTGRES_PASSWORD: password
+    env_file: .env
     ports:
       - "5431:5432"
     volumes:
@@ -25,6 +22,8 @@ services:
   redis:
     container_name: chat_redis
     image: redis:latest
+    env_file: .env
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     restart: always
     ports:
       - "6378:6379"
